@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentRAG — Live AWS Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e1a; --bg2: #111827; --card: rgba(17,24,39,0.7);
+            --border: rgba(75,85,99,0.4); --t1: #f9fafb; --t2: #9ca3af; --t3: #6b7280;
+            --blue: #3b82f6; --purple: #8b5cf6; --green: #10b981;
+            --amber: #f59e0b; --red: #ef4444; --cyan: #06b6d4; --pink: #ec4899;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--t1); min-height:100vh; }
+        body::before { content:''; position:fixed; inset:0; background:radial-gradient(ellipse at 20% 50%,rgba(59,130,246,.08)0,transparent 50%),radial-gradient(ellipse at 80% 20%,rgba(139,92,246,.06)0,transparent 50%),radial-gradient(ellipse at 60% 80%,rgba(16,185,129,.05)0,transparent 50%); z-index:0; }
+        .dash { position:relative; z-index:1; max-width:1400px; margin:0 auto; padding:2rem; }
+
+        /* Header */
+        .hdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; padding-bottom:1.5rem; border-bottom:1px solid var(--border); }
+        .hdr h1 { font-size:1.75rem; font-weight:800; background:linear-gradient(135deg,var(--blue),var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .hdr p { color:var(--t2); font-size:.875rem; margin-top:.25rem; }
+        .hdr-r { display:flex; gap:.75rem; align-items:center; }
+        .badge { display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:9999px; font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+        .badge.live { background:rgba(16,185,129,.15); color:var(--green); border:1px solid rgba(16,185,129,.3); }
+        .badge.live::before { content:''; width:8px; height:8px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+        .badge.region { background:rgba(59,130,246,.15); color:var(--blue); border:1px solid rgba(59,130,246,.3); }
+        .badge.err { background:rgba(239,68,68,.15); color:var(--red); border:1px solid rgba(239,68,68,.3); }
+        @keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(16,185,129,.4)} 50%{opacity:.8;box-shadow:0 0 0 6px rgba(16,185,129,0)} }
+
+        /* Stats */
+        .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:2rem; }
+        .scard { background:var(--card); backdrop-filter:blur(12px); border:1px solid var(--border); border-radius:16px; padding:1.5rem; transition:all .3s; position:relative; overflow:hidden; }
+        .scard::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:16px 16px 0 0; }
+        .scard:nth-child(1)::before{background:linear-gradient(135deg,var(--blue),var(--purple))} .scard:nth-child(2)::before{background:linear-gradient(135deg,var(--green),var(--cyan))} .scard:nth-child(3)::before{background:linear-gradient(135deg,var(--amber),var(--red))} .scard:nth-child(4)::before{background:linear-gradient(135deg,var(--pink),var(--purple))}
+        .scard:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,.3); }
+        .slbl { color:var(--t2); font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin-bottom:.5rem; }
+        .sval { font-size:2rem; font-weight:800; }
+        .ssub { color:var(--t3); font-size:.75rem; margin-top:.25rem; }
+        .loading { color:var(--t3); font-style:italic; }
+
+        /* Sections */
+        .stitle { font-size:1.125rem; font-weight:700; margin-bottom:1rem; display:flex; align-items:center; gap:.5rem; }
+        .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:2rem; }
+        .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:2rem; }
+
+        /* Cards */
+        .rcard { background:var(--card); backdrop-filter:blur(12px); border:1px solid var(--border); border-radius:16px; padding:1.5rem; transition:all .3s; }
+        .rcard:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,.3); border-color:rgba(75,85,99,.6); }
+        .rcard h3 { font-size:1rem; font-weight:700; margin-bottom:.25rem; }
+        .rcard .type { color:var(--t3); font-size:.75rem; margin-bottom:1rem; }
+        .rcard .rhdr { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; }
+        .ricon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.25rem; flex-shrink:0; }
+        .rstatus { display:inline-flex; align-items:center; gap:.375rem; padding:.25rem .625rem; border-radius:9999px; font-size:.625rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+        .rstatus.ok { background:rgba(16,185,129,.15); color:var(--green); }
+        .rstatus.ok::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--green); }
+        .rstatus.warn { background:rgba(245,158,11,.15); color:var(--amber); }
+        .rstatus.na { background:rgba(107,114,128,.15); color:var(--t3); }
+        .drow { display:flex; justify-content:space-between; align-items:center; font-size:.8125rem; padding:.375rem 0; border-bottom:1px solid rgba(75,85,99,.15); }
+        .drow:last-child { border-bottom:none; }
+        .dlbl { color:var(--t2); }
+        .dval { color:var(--t1); font-weight:500; font-family:'SF Mono','Fira Code',monospace; font-size:.75rem; }
+        .dval.green { color:var(--green); }
+        .dval.amber { color:var(--amber); }
+
+        /* Cost Table */
+        .ctable { width:100%; background:var(--card); backdrop-filter:blur(12px); border:1px solid var(--border); border-radius:16px; overflow:hidden; margin-bottom:2rem; }
+        .ctable table { width:100%; border-collapse:collapse; }
+        .ctable thead { background:rgba(31,41,55,.5); }
+        .ctable th { padding:1rem 1.25rem; text-align:left; font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--t2); border-bottom:1px solid var(--border); }
+        .ctable td { padding:.875rem 1.25rem; font-size:.875rem; border-bottom:1px solid rgba(75,85,99,.2); }
+        .ctable tr:last-child td { border-bottom:none; }
+        .ctable tr:hover td { background:rgba(31,41,55,.3); }
+
+        /* API URL banner */
+        .url-banner { background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(139,92,246,.1)); border:1px solid rgba(59,130,246,.3); border-radius:12px; padding:1rem 1.5rem; margin-bottom:2rem; display:flex; align-items:center; gap:1rem; }
+        .url-banner .label { color:var(--t2); font-size:.75rem; font-weight:600; text-transform:uppercase; }
+        .url-banner .url { color:var(--blue); font-family:'SF Mono','Fira Code',monospace; font-size:.875rem; word-break:break-all; }
+        .url-banner .url a { color:var(--blue); text-decoration:none; }
+        .url-banner .url a:hover { text-decoration:underline; }
+
+        /* Footer */
+        .footer { text-align:center; padding:2rem 0 1rem; border-top:1px solid var(--border); color:var(--t3); font-size:.75rem; }
+        #refresh-btn { background:linear-gradient(135deg,var(--blue),var(--purple)); color:white; border:none; padding:.5rem 1.25rem; border-radius:8px; font-size:.75rem; font-weight:600; cursor:pointer; transition:all .2s; }
+        #refresh-btn:hover { transform:scale(1.05); box-shadow:0 4px 16px rgba(59,130,246,.3); }
+        #last-updated { color:var(--t3); font-size:.7rem; }
+
+        @media(max-width:1024px) { .stats{grid-template-columns:repeat(2,1fr)} .grid3{grid-template-columns:repeat(2,1fr)} .grid2{grid-template-columns:1fr} }
+        @media(max-width:640px) { .stats{grid-template-columns:1fr} .grid3{grid-template-columns:1fr} .hdr{flex-direction:column;gap:1rem;align-items:flex-start} }
+    </style>
+</head>
+<body>
+<div class="dash">
+    <!-- Header -->
+    <header class="hdr">
+        <div>
+            <h1>☁️ AgentRAG — Live AWS Dashboard</h1>
+            <p>AWS Account 454837411571 · Real-time infrastructure metrics</p>
+        </div>
+        <div class="hdr-r">
+            <button id="refresh-btn" onclick="fetchAll()">⟳ Refresh</button>
+            <span id="last-updated"></span>
+            <span class="badge live" id="conn-badge">Connected</span>
+            <span class="badge region">us-east-1</span>
+        </div>
+    </header>
+
+    <!-- API Gateway URL -->
+    <div class="url-banner" id="api-url-banner" style="display:none;">
+        <div class="label">🌐 Live API URL</div>
+        <div class="url" id="api-url-value"></div>
+    </div>
+
+    <!-- Top Stats -->
+    <div class="stats">
+        <div class="scard">
+            <div class="slbl">Lambda Invocations (7d)</div>
+            <div class="sval" id="stat-invocations" style="color:var(--blue)">—</div>
+            <div class="ssub" id="stat-errors-sub">Loading...</div>
+        </div>
+        <div class="scard">
+            <div class="slbl">Current Month Cost</div>
+            <div class="sval" id="stat-cost" style="color:var(--green)">—</div>
+            <div class="ssub" id="stat-cost-sub">Loading...</div>
+        </div>
+        <div class="scard">
+            <div class="slbl">Budget Status</div>
+            <div class="sval" id="stat-budget" style="color:var(--amber)">—</div>
+            <div class="ssub" id="stat-budget-sub">Loading...</div>
+        </div>
+        <div class="scard">
+            <div class="slbl">Stack Status</div>
+            <div class="sval" id="stat-stack" style="color:var(--purple)">—</div>
+            <div class="ssub" id="stat-stack-sub">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Lambda + API Gateway -->
+    <div class="stitle">⚡ Compute & Networking</div>
+    <div class="grid2">
+        <div class="rcard" id="lambda-card">
+            <div class="rhdr">
+                <div class="ricon" style="background:rgba(249,115,22,.15)">⚡</div>
+                <span class="rstatus na">Loading</span>
+            </div>
+            <h3>Lambda Function</h3>
+            <div class="type">Loading...</div>
+            <div id="lambda-details"><div class="loading">Fetching from AWS...</div></div>
+        </div>
+        <div class="rcard" id="apigw-card">
+            <div class="rhdr">
+                <div class="ricon" style="background:rgba(139,92,246,.15)">🌐</div>
+                <span class="rstatus na">Loading</span>
+            </div>
+            <h3>API Gateway</h3>
+            <div class="type">Loading...</div>
+            <div id="apigw-details"><div class="loading">Fetching from AWS...</div></div>
+        </div>
+    </div>
+
+    <!-- Storage -->
+    <div class="stitle">🗄️ Storage & Database</div>
+    <div class="grid3" id="storage-grid">
+        <div class="rcard">
+            <div class="rhdr">
+                <div class="ricon" style="background:rgba(16,185,129,.15)">🪣</div>
+                <span class="rstatus na">Loading</span>
+            </div>
+            <h3>S3 Buckets</h3>
+            <div class="type">Loading...</div>
+            <div id="s3-details"><div class="loading">Fetching from AWS...</div></div>
+        </div>
+        <div class="rcard" id="ddb-card-1">
+            <div class="rhdr">
+                <div class="ricon" style="background:rgba(59,130,246,.15)">🗃️</div>
+                <span class="rstatus na">Loading</span>
+            </div>
+            <h3>DynamoDB Tables</h3>
+            <div class="type">Loading...</div>
+            <div id="ddb-details"><div class="loading">Fetching from AWS...</div></div>
+        </div>
+        <div class="rcard" id="cfn-card">
+            <div class="rhdr">
+                <div class="ricon" style="background:rgba(156,163,175,.15)">📋</div>
+                <span class="rstatus na">Loading</span>
+            </div>
+            <h3>CloudFormation Stacks</h3>
+            <div class="type">Loading...</div>
+            <div id="cfn-details"><div class="loading">Fetching from AWS...</div></div>
+        </div>
+    </div>
+
+    <!-- Cost Breakdown -->
+    <div class="stitle">💵 Cost Breakdown (Current Month)</div>
+    <div class="ctable">
+        <table>
+            <thead><tr><th>Service</th><th>Cost (USD)</th></tr></thead>
+            <tbody id="cost-tbody">
+                <tr><td colspan="2" class="loading">Fetching from AWS Cost Explorer...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <footer class="footer">
+        <p>AgentRAG Live Dashboard · Data fetched directly from AWS APIs · Auto-refresh every 60s</p>
+    </footer>
+</div>
+
+<script>
+const BASE = '';
+
+function detailRows(pairs) {
+    return pairs.map(([l,v,c]) => `<div class="drow"><span class="dlbl">${l}</span><span class="dval ${c||''}">${v}</span></div>`).join('');
+}
+
+async function fetchLambda() {
+    try {
+        const r = await fetch(`${BASE}/api/lambda`);
+        const d = await r.json();
+        const card = document.getElementById('lambda-card');
+        if (d.status === 'deployed') {
+            card.querySelector('.rstatus').className = 'rstatus ok';
+            card.querySelector('.rstatus').textContent = 'Active';
+            card.querySelector('h3').textContent = d.function_name;
+            card.querySelector('.type').textContent = `AWS::Lambda::Function (${d.runtime})`;
+            document.getElementById('lambda-details').innerHTML = detailRows([
+                ['Memory', d.memory_mb + ' MB', ''],
+                ['Timeout', d.timeout_s + 's', ''],
+                ['Image Size', d.code_size_mb + ' MB', ''],
+                ['Invocations (7d)', d.total_invocations_7d, 'green'],
+                ['Errors (7d)', d.total_errors_7d, d.total_errors_7d > 0 ? 'amber' : 'green'],
+                ['Avg Duration', d.avg_duration_ms + ' ms', ''],
+                ['Last Modified', new Date(d.last_modified).toLocaleDateString(), ''],
+            ]);
+            document.getElementById('stat-invocations').textContent = d.total_invocations_7d;
+            document.getElementById('stat-errors-sub').textContent = `${d.total_errors_7d} errors · ${d.avg_duration_ms}ms avg`;
+        } else if (d.status === 'not_deployed') {
+            card.querySelector('.rstatus').className = 'rstatus warn';
+            card.querySelector('.rstatus').textContent = 'Not Deployed';
+            document.getElementById('lambda-details').innerHTML = '<div class="loading">No AgentRag Lambda found</div>';
+            document.getElementById('stat-invocations').textContent = '0';
+            document.getElementById('stat-errors-sub').textContent = 'Not deployed yet';
+        } else {
+            card.querySelector('.rstatus').className = 'rstatus warn';
+            card.querySelector('.rstatus').textContent = 'Error';
+            document.getElementById('lambda-details').innerHTML = `<div class="loading">${d.error}</div>`;
+        }
+    } catch(e) { console.error('Lambda fetch error:', e); }
+}
+
+async function fetchApiGw() {
+    try {
+        const r = await fetch(`${BASE}/api/apigateway`);
+        const d = await r.json();
+        const card = document.getElementById('apigw-card');
+        if (d.status === 'ok' && d.apis.length > 0) {
+            const api = d.apis[0];
+            card.querySelector('.rstatus').className = 'rstatus ok';
+            card.querySelector('.rstatus').textContent = 'Active';
+            card.querySelector('h3').textContent = api.name;
+            card.querySelector('.type').textContent = `AWS::ApiGatewayV2::Api (${api.protocol})`;
+            document.getElementById('apigw-details').innerHTML = detailRows([
+                ['API ID', api.api_id, ''],
+                ['Endpoint', api.endpoint, 'green'],
+                ['Protocol', api.protocol, ''],
+                ['Created', api.created ? new Date(api.created).toLocaleDateString() : 'N/A', ''],
+            ]);
+            // Show URL banner
+            const banner = document.getElementById('api-url-banner');
+            banner.style.display = 'flex';
+            document.getElementById('api-url-value').innerHTML = `<a href="${api.endpoint}" target="_blank">${api.endpoint}</a>`;
+        } else {
+            card.querySelector('.rstatus').className = 'rstatus na';
+            card.querySelector('.rstatus').textContent = 'Not Found';
+            document.getElementById('apigw-details').innerHTML = '<div class="loading">No API Gateway found</div>';
+        }
+    } catch(e) { console.error('APIGW fetch error:', e); }
+}
+
+async function fetchS3() {
+    try {
+        const r = await fetch(`${BASE}/api/s3`);
+        const d = await r.json();
+        const el = document.getElementById('s3-details');
+        const card = el.closest('.rcard');
+        if (d.status === 'ok' && d.buckets.length > 0) {
+            card.querySelector('.rstatus').className = 'rstatus ok';
+            card.querySelector('.rstatus').textContent = 'Active';
+            card.querySelector('.type').textContent = `${d.buckets.length} bucket(s)`;
+            let html = '';
+            for (const b of d.buckets) {
+                html += detailRows([
+                    ['Bucket', b.name, ''],
+                    ['Objects', b.object_count, ''],
+                    ['Size', b.total_size_mb + ' MB', ''],
+                ]);
+            }
+            el.innerHTML = html;
+        } else {
+            card.querySelector('.rstatus').className = 'rstatus na';
+            card.querySelector('.rstatus').textContent = d.status === 'error' ? 'Error' : 'Empty';
+            el.innerHTML = `<div class="loading">${d.error || 'No AgentRAG buckets found'}</div>`;
+        }
+    } catch(e) { console.error('S3 fetch error:', e); }
+}
+
+async function fetchDDB() {
+    try {
+        const r = await fetch(`${BASE}/api/dynamodb`);
+        const d = await r.json();
+        const el = document.getElementById('ddb-details');
+        const card = el.closest('.rcard');
+        if (d.status === 'ok' && d.tables.length > 0) {
+            card.querySelector('.rstatus').className = 'rstatus ok';
+            card.querySelector('.rstatus').textContent = 'Active';
+            card.querySelector('.type').textContent = `${d.tables.length} table(s)`;
+            let html = '';
+            for (const t of d.tables) {
+                html += `<div style="margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:1px solid rgba(75,85,99,.2)"><strong style="font-size:.8rem">${t.name}</strong></div>`;
+                html += detailRows([
+                    ['Status', t.status, t.status === 'ACTIVE' ? 'green' : 'amber'],
+                    ['Items', t.item_count, ''],
+                    ['Size', (t.size_bytes / 1024).toFixed(1) + ' KB', ''],
+                    ['Billing', t.billing, ''],
+                ]);
+            }
+            el.innerHTML = html;
+        } else {
+            card.querySelector('.rstatus').className = 'rstatus na';
+            card.querySelector('.rstatus').textContent = d.status === 'error' ? 'Error' : 'Empty';
+            el.innerHTML = `<div class="loading">${d.error || 'No tables found'}</div>`;
+        }
+    } catch(e) { console.error('DDB fetch error:', e); }
+}
+
+async function fetchCosts() {
+    try {
+        const r = await fetch(`${BASE}/api/costs`);
+        const d = await r.json();
+        document.getElementById('stat-cost').textContent = '$' + (d.total_cost || 0).toFixed(2);
+        document.getElementById('stat-cost-sub').textContent = d.period || '';
+        const tbody = document.getElementById('cost-tbody');
+        if (d.status === 'ok' && d.services.length > 0) {
+            tbody.innerHTML = d.services.map(s =>
+                `<tr><td>${s.service}</td><td style="color:${s.cost > 0.01 ? 'var(--amber)' : 'var(--green)'};font-weight:600">$${s.cost.toFixed(4)}</td></tr>`
+            ).join('') + `<tr style="background:rgba(16,185,129,.08)"><td style="font-weight:700">Total</td><td style="font-weight:700;color:var(--green)">$${d.total_cost.toFixed(4)}</td></tr>`;
+        } else {
+            tbody.innerHTML = `<tr><td colspan="2" style="color:var(--t3)">${d.error || 'No cost data yet'}</td></tr>`;
+        }
+    } catch(e) { console.error('Cost fetch error:', e); }
+}
+
+async function fetchBudget() {
+    try {
+        const r = await fetch(`${BASE}/api/budget`);
+        const d = await r.json();
+        if (d.status === 'ok' && d.budgets.length > 0) {
+            const b = d.budgets[0];
+            document.getElementById('stat-budget').textContent = b.limit;
+            document.getElementById('stat-budget-sub').textContent = `Spent: ${b.actual_spend} · Forecast: ${b.forecasted_spend}`;
+        } else {
+            document.getElementById('stat-budget').textContent = '$0.50';
+            document.getElementById('stat-budget-sub').textContent = d.error || 'No budget data';
+        }
+    } catch(e) { console.error('Budget fetch error:', e); }
+}
+
+async function fetchCFN() {
+    try {
+        const r = await fetch(`${BASE}/api/cloudformation`);
+        const d = await r.json();
+        const el = document.getElementById('cfn-details');
+        const card = el.closest('.rcard');
+        if (d.status === 'ok' && d.stacks.length > 0) {
+            const main = d.stacks.find(s => s.name.includes('AgentRag')) || d.stacks[0];
+            card.querySelector('.rstatus').className = 'rstatus ' + (main.status.includes('COMPLETE') ? 'ok' : 'warn');
+            card.querySelector('.rstatus').textContent = main.status;
+            card.querySelector('.type').textContent = `${d.stacks.length} stack(s)`;
+            document.getElementById('stat-stack').textContent = main.status.replace('_', ' ');
+            document.getElementById('stat-stack-sub').textContent = main.name;
+            let html = '';
+            for (const s of d.stacks) {
+                html += `<div style="margin-bottom:.5rem"><strong style="font-size:.8rem">${s.name}</strong></div>`;
+                html += detailRows([
+                    ['Status', s.status, s.status.includes('COMPLETE') ? 'green' : 'amber'],
+                    ['Created', s.created ? new Date(s.created).toLocaleDateString() : '', ''],
+                ]);
+            }
+            el.innerHTML = html;
+        } else {
+            card.querySelector('.rstatus').className = 'rstatus na';
+            card.querySelector('.rstatus').textContent = 'Not Found';
+            document.getElementById('stat-stack').textContent = 'N/A';
+            document.getElementById('stat-stack-sub').textContent = d.error || 'No stacks';
+            el.innerHTML = `<div class="loading">${d.error || 'No stacks found'}</div>`;
+        }
+    } catch(e) { console.error('CFN fetch error:', e); }
+}
+
+async function fetchAll() {
+    document.getElementById('refresh-btn').textContent = '⟳ Refreshing...';
+    await Promise.all([fetchLambda(), fetchApiGw(), fetchS3(), fetchDDB(), fetchCosts(), fetchBudget(), fetchCFN()]);
+    document.getElementById('refresh-btn').textContent = '⟳ Refresh';
+    document.getElementById('last-updated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+}
+
+fetchAll();
+setInterval(fetchAll, 60000);
+</script>
+</body>
+</html>
