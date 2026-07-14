@@ -98,3 +98,8 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 addopts = "--cov=src/agentrag --cov-fail-under=80 --cov-report=term-missing"
 testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pip-audit>=2.10.1",
+]
