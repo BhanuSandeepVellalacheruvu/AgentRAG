@@ -4,7 +4,11 @@ from pathlib import Path
 
 from agentrag.agents.state import AgentState
 from agentrag.config import get_settings
-from agentrag.retrieval.embeddings import BedrockEmbeddingProvider
+from agentrag.retrieval.embeddings import (
+    BedrockEmbeddingProvider,
+    EmbeddingProvider,
+    MockEmbeddingProvider,
+)
 from agentrag.retrieval.faiss_store import HybridFAISSStore
 
 # Module-level cache for the store to avoid reloading on every lambda invocation
@@ -18,10 +22,14 @@ def get_store() -> HybridFAISSStore:
         return _STORE_INSTANCE
 
     settings = get_settings()
-    provider = BedrockEmbeddingProvider(
-        model_id=settings.bedrock_embedding_model_id,
-        aws_region=settings.aws_region,
-    )
+    provider: EmbeddingProvider
+    if settings.use_mock_embeddings:
+        provider = MockEmbeddingProvider(dimension=1024)
+    else:
+        provider = BedrockEmbeddingProvider(
+            model_id=settings.bedrock_embedding_model_id,
+            aws_region=settings.aws_region,
+        )
     store = HybridFAISSStore(
         embedding_provider=provider,
         dimension=provider.get_dimension(),

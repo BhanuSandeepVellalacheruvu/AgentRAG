@@ -40,6 +40,10 @@ class Settings(BaseSettings):
         "amazon.titan-embed-text-v2:0",
         description="Bedrock model ID for text embeddings (on-demand only).",
     )
+    use_mock_embeddings: bool = Field(
+        False,
+        description="Whether to use mock embeddings instead of AWS Bedrock Titan.",
+    )
 
     # S3 — free tier: 5 GB storage, 20k GET, 2k PUT/month
     s3_bucket_name: str = Field(
