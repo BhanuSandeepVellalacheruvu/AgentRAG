@@ -52,7 +52,7 @@ class HybridFAISSStore:
         self.persist_dir.mkdir(parents=True, exist_ok=True)
 
         # Inner product index (equivalent to cosine similarity if vectors are normalized)  # noqa: E501
-        self.index = faiss.IndexFlatIP(dimension)
+        self.index: faiss.Index = faiss.IndexFlatIP(dimension)
         self.chunks: list[Chunk] = []
         self.bm25: BM25Okapi | None = None
 
@@ -126,7 +126,7 @@ class HybridFAISSStore:
             min_s, max_s = np.min(s), np.max(s)
             if max_s - min_s == 0:
                 return np.ones_like(s) if max_s > 0 else np.zeros_like(s)
-            return (s - min_s) / (max_s - min_s)
+            return (s - min_s) / (max_s - min_s)  # type: ignore[no-any-return]
 
         # Get all dense scores mapped to original indices (default 0.0)
         all_dense_scores = np.zeros(len(self.chunks))

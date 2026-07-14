@@ -2,6 +2,7 @@
 
 import hashlib
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -93,7 +94,7 @@ def test_sync_to_s3(mock_boto3_client: MagicMock, temp_store_dir: Path) -> None:
     mock_s3 = MagicMock()
     mock_ddb = MagicMock()
 
-    def get_client(service, **kwargs):
+    def get_client(service: Any, **kwargs: Any) -> Any:
         if service == "s3":
             return mock_s3
         if service == "dynamodb":
@@ -140,7 +141,7 @@ def test_load_from_s3_success(
     mock_s3 = MagicMock()
     mock_ddb = MagicMock()
 
-    def get_client(service, **kwargs):
+    def get_client(service: Any, **kwargs: Any) -> Any:
         if service == "s3":
             return mock_s3
         if service == "dynamodb":
@@ -148,7 +149,7 @@ def test_load_from_s3_success(
 
     mock_boto3_client.side_effect = get_client
 
-    def get_object_side_effect(Bucket, Key):
+    def get_object_side_effect(Bucket: Any, Key: Any) -> Any:
         if "faiss" in Key:
             return {"Body": MagicMock(read=MagicMock(return_value=faiss_data))}
         return {"Body": MagicMock(read=MagicMock(return_value=meta_data))}
@@ -175,7 +176,7 @@ def test_load_from_s3_integrity_failure(
     mock_s3 = MagicMock()
     mock_ddb = MagicMock()
 
-    def get_client(service, **kwargs):
+    def get_client(service: Any, **kwargs: Any) -> Any:
         if service == "s3":
             return mock_s3
         if service == "dynamodb":

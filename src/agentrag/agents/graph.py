@@ -1,6 +1,7 @@
 """LangGraph setup for AgentRAG."""
 
 from langgraph.graph import END, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
 from agentrag.agents.critic import critique_generation
 from agentrag.agents.generator import generate_response
@@ -30,7 +31,7 @@ def check_groundedness(state: AgentState) -> str:
     return "generate"
 
 
-def build_graph():
+def build_graph() -> CompiledStateGraph:  # type: ignore[type-arg]
     """Build and compile the LangGraph workflow."""
     workflow = StateGraph(AgentState)
 

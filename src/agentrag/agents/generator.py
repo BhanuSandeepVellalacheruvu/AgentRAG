@@ -11,7 +11,7 @@ def generate_response(state: AgentState) -> AgentState:
     settings = get_settings()
 
     # We use Sonnet for generation because it provides better reasoning
-    llm = ChatBedrock(
+    llm = ChatBedrock(  # type: ignore[call-arg]
         model_id="anthropic.claude-3-sonnet-20240229-v1:0",
         region_name=settings.aws_region,
         client=None,

@@ -1,5 +1,7 @@
 """Critic agent for the LangGraph pipeline."""
 
+from typing import cast
+
 from langchain_aws import ChatBedrock
 from pydantic import BaseModel, Field
 
@@ -27,7 +29,7 @@ def critique_generation(state: AgentState) -> AgentState:
     settings = get_settings()
 
     # We use a fast/cheap model for critique
-    llm = ChatBedrock(
+    llm = ChatBedrock(  # type: ignore[call-arg]
         model_id="anthropic.claude-3-haiku-20240307-v1:0",
         region_name=settings.aws_region,
         client=None,
@@ -49,7 +51,7 @@ def critique_generation(state: AgentState) -> AgentState:
     messages = [("system", system_prompt), ("human", user_prompt)]
 
     try:
-        decision = critic_llm.invoke(messages)
+        decision = cast(Critique, critic_llm.invoke(messages))
         is_grounded = decision.is_grounded
     except Exception:
         # If the critic fails, we tentatively accept it to prevent blocking

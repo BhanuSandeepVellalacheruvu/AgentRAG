@@ -9,6 +9,7 @@ import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import boto3
 
@@ -38,10 +39,10 @@ class DocumentLoader:
         """
         self.s3_bucket = s3_bucket
         self.aws_region = aws_region
-        self._s3_client = None
+        self._s3_client: Any = None
 
     @property
-    def s3_client(self):
+    def s3_client(self) -> Any:
         """Lazy-loaded S3 client."""
         if self._s3_client is None:
             self._s3_client = boto3.client("s3", region_name=self.aws_region)

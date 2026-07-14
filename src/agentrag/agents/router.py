@@ -1,6 +1,6 @@
 """Router agent for the LangGraph pipeline."""
 
-from typing import Literal
+from typing import Literal, cast
 
 from langchain_aws import ChatBedrock
 from pydantic import BaseModel, Field
@@ -27,7 +27,7 @@ def route_query(state: AgentState) -> AgentState:
 
     # Initialize the Bedrock model
     # We use a fast/cheap model like Haiku for routing
-    llm = ChatBedrock(
+    llm = ChatBedrock(  # type: ignore[call-arg]
         model_id="anthropic.claude-3-haiku-20240307-v1:0",
         region_name=settings.aws_region,
         client=None,  # will use default boto3 session
@@ -47,7 +47,7 @@ def route_query(state: AgentState) -> AgentState:
     messages = [("system", system_prompt), ("human", state["query"])]
 
     try:
-        decision = router_llm.invoke(messages)
+        decision = cast(RouteDecision, router_llm.invoke(messages))
         next_action = decision.next_action
     except Exception:
         # Fallback to retrieve on error

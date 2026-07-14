@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -121,7 +122,7 @@ def test_load_s3_prefix(mock_boto3_client: MagicMock) -> None:
     ]
 
     # Mock get_object responses
-    def mock_get_object(Bucket, Key):
+    def mock_get_object(Bucket: Any, Key: Any) -> Any:
         if Key == "docs/data.jsonl":
             content = "\n" + json.dumps(
                 {

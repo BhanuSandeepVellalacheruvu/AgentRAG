@@ -17,6 +17,10 @@ class EmbeddingProvider(Protocol):
         """Generate embeddings for a list of texts."""
         ...
 
+    def get_dimension(self) -> int:
+        """Return the dimension of the embeddings."""
+        ...
+
 
 class BedrockEmbeddingProvider:
     """Generates embeddings using Amazon Bedrock Titan."""
@@ -56,6 +60,10 @@ class BedrockEmbeddingProvider:
 
         return embeddings
 
+    def get_dimension(self) -> int:
+        """Return the dimension of the embeddings."""
+        return 1024
+
 
 class MockEmbeddingProvider:
     """A mock embedding provider for CI and testing that generates pseudo-random vectors."""  # noqa: E501
@@ -67,6 +75,10 @@ class MockEmbeddingProvider:
             dimension: Dimensionality of the mock embeddings.
         """
         self.dimension = dimension
+
+    def get_dimension(self) -> int:
+        """Return the dimension of the embeddings."""
+        return self.dimension
 
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         """Return deterministic fake embeddings based on text length."""

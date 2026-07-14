@@ -18,16 +18,19 @@ def get_store() -> HybridFAISSStore:
         return _STORE_INSTANCE
 
     settings = get_settings()
-    provider = BedrockEmbeddingProvider(region_name=settings.aws_region)
+    provider = BedrockEmbeddingProvider(
+        model_id=settings.bedrock_embedding_model_id,
+        aws_region=settings.aws_region,
+    )
     store = HybridFAISSStore(
         embedding_provider=provider,
         dimension=provider.get_dimension(),
         persist_dir=Path(settings.faiss_local_path),
     )
 
-    if settings.s3_bucket:
+    if settings.s3_bucket_name:
         try:
-            store.load_from_s3(settings.s3_bucket)
+            store.load_from_s3(settings.s3_bucket_name)
         except Exception:
             # Fallback to local if S3 fails or is empty
             store.load_local()

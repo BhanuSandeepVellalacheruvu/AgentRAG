@@ -22,7 +22,7 @@ def test_get_store_loads_s3(
     mock_settings_obj = MagicMock()
     mock_settings_obj.aws_region = "us-east-1"
     mock_settings_obj.faiss_local_path = "/tmp"
-    mock_settings_obj.s3_bucket = "my-bucket"
+    mock_settings_obj.s3_bucket_name = "my-bucket"
     mock_settings.return_value = mock_settings_obj
 
     mock_store_instance = MagicMock()

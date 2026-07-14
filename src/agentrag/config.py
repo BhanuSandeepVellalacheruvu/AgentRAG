@@ -47,6 +47,11 @@ class Settings(BaseSettings):
         description="S3 bucket for document storage and FAISS index.",
     )
 
+    faiss_local_path: str = Field(
+        "./data/index",
+        description="Local directory to save/load FAISS index.",
+    )
+
     # DynamoDB — on-demand billing, only used if M2 needs structured trace state
     dynamodb_table_name: str = Field(
         "agentrag-traces",
