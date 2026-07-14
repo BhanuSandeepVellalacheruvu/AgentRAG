@@ -10,7 +10,6 @@ import logging
 import secrets
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
 
 import boto3
 import faiss
@@ -26,14 +25,14 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SearchResult:
     """A retrieved chunk with a relevance score."""
-    
+
     chunk: Chunk
     score: float
 
 
 class HybridFAISSStore:
     """A hybrid retriever using FAISS (dense) and BM25 (sparse)."""
-    
+
     def __init__(
         self,
         embedding_provider: EmbeddingProvider,
@@ -41,7 +40,7 @@ class HybridFAISSStore:
         persist_dir: str | Path = "./data/index",
     ) -> None:
         """Initialize the store.
-        
+
         Args:
             embedding_provider: The provider to generate embeddings.
             dimension: Dimensionality of the embeddings.
@@ -51,8 +50,8 @@ class HybridFAISSStore:
         self.dimension = dimension
         self.persist_dir = Path(persist_dir)
         self.persist_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Inner product index (equivalent to cosine similarity if vectors are normalized)
+
+        # Inner product index (equivalent to cosine similarity if vectors are normalized)  # noqa: E501
         self.index = faiss.IndexFlatIP(dimension)
         self.chunks: list[Chunk] = []
         self.bm25: BM25Okapi | None = None
@@ -63,22 +62,22 @@ class HybridFAISSStore:
             return
 
         texts = [chunk.text for chunk in chunks]
-        
+
         # Embed in batches
         all_embeddings = []
         for i in range(0, len(texts), batch_size):
             batch_texts = texts[i:i + batch_size]
             batch_embeddings = self.embedding_provider.embed_texts(batch_texts)
             all_embeddings.extend(batch_embeddings)
-            
+
         vectors = np.array(all_embeddings, dtype=np.float32)
-        
+
         # Normalize vectors for cosine similarity
         faiss.normalize_L2(vectors)
-        
+
         self.index.add(vectors)
         self.chunks.extend(chunks)
-        
+
         # Rebuild BM25
         tokenized_corpus = [text.lower().split() for text in texts]
         if self.bm25:
@@ -89,9 +88,9 @@ class HybridFAISSStore:
         else:
             self.bm25 = BM25Okapi(tokenized_corpus)
 
-    def search(self, query: str, top_k: int = 5, alpha: float = 0.5) -> list[SearchResult]:
+    def search(self, query: str, top_k: int = 5, alpha: float = 0.5) -> list[SearchResult]:  # noqa: E501
         """Perform hybrid search combining FAISS and BM25.
-        
+
         Args:
             query: The search query.
             top_k: Number of results to return.
@@ -102,17 +101,17 @@ class HybridFAISSStore:
             return []
 
         # 1. Dense Search (FAISS)
-        query_vector = np.array(self.embedding_provider.embed_texts([query]), dtype=np.float32)
+        query_vector = np.array(self.embedding_provider.embed_texts([query]), dtype=np.float32)  # noqa: E501
         faiss.normalize_L2(query_vector)
-        
+
         # Get more results than top_k for better fusion
         search_k = min(top_k * 2, len(self.chunks))
         dense_scores, dense_indices = self.index.search(query_vector, search_k)
-        
+
         # 2. Sparse Search (BM25)
         tokenized_query = query.lower().split()
-        sparse_scores = self.bm25.get_scores(tokenized_query) if self.bm25 else [0.0] * len(self.chunks)
-        
+        sparse_scores = self.bm25.get_scores(tokenized_query) if self.bm25 else [0.0] * len(self.chunks)  # noqa: E501
+
         # Normalize scores to [0, 1] for fusion
         def min_max_norm(scores: list[float] | np.ndarray) -> np.ndarray:
             s = np.array(scores)
@@ -126,27 +125,27 @@ class HybridFAISSStore:
         for idx, score in zip(dense_indices[0], dense_scores[0]):
             if idx != -1:
                 all_dense_scores[idx] = score
-                
+
         norm_dense = min_max_norm(all_dense_scores)
         norm_sparse = min_max_norm(sparse_scores)
-        
+
         # 3. Score Fusion
         hybrid_scores = alpha * norm_dense + (1.0 - alpha) * norm_sparse
-        
+
         # 4. Rank and return top_k
         top_indices = np.argsort(hybrid_scores)[::-1][:top_k]
-        
+
         results = []
         for idx in top_indices:
             if hybrid_scores[idx] > 0.0:  # Only return relevant results
-                results.append(SearchResult(chunk=self.chunks[idx], score=float(hybrid_scores[idx])))
-                
+                results.append(SearchResult(chunk=self.chunks[idx], score=float(hybrid_scores[idx])))  # noqa: E501
+
         return results
 
     def save_local(self) -> None:
         """Save the FAISS index and metadata to disk."""
         faiss.write_index(self.index, str(self.persist_dir / "index.faiss"))
-        
+
         metadata = [asdict(chunk) for chunk in self.chunks]
         with open(self.persist_dir / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(metadata, f)
@@ -155,42 +154,42 @@ class HybridFAISSStore:
         """Load the FAISS index and metadata from disk."""
         index_path = self.persist_dir / "index.faiss"
         meta_path = self.persist_dir / "metadata.json"
-        
+
         if not index_path.exists() or not meta_path.exists():
             raise FileNotFoundError("Index files not found")
-            
+
         self.index = faiss.read_index(str(index_path))
-        
-        with open(meta_path, "r", encoding="utf-8") as f:
+
+        with open(meta_path, encoding="utf-8") as f:
             metadata = json.load(f)
-            
+
         self.chunks = [Chunk(**data) for data in metadata]
-        
+
         # Rebuild BM25
         if self.chunks:
             all_tokenized = [c.text.lower().split() for c in self.chunks]
             self.bm25 = BM25Okapi(all_tokenized)
 
-    def sync_to_s3(self, s3_bucket: str, prefix: str = "index/", aws_region: str | None = None) -> None:
+    def sync_to_s3(self, s3_bucket: str, prefix: str = "index/", aws_region: str | None = None) -> None:  # noqa: E501
         """Upload index files to S3 and store hash in DynamoDB for integrity."""
         self.save_local()
-        
+
         s3 = boto3.client("s3", region_name=aws_region)
         dynamodb = boto3.client("dynamodb", region_name=aws_region)
-        
+
         index_path = self.persist_dir / "index.faiss"
         with open(index_path, "rb") as f:
             index_data = f.read()
-            
+
         # SEC-003: Calculate SHA-256 hash for integrity
         index_hash = hashlib.sha256(index_data).hexdigest()
-        
+
         # Upload files
         s3.put_object(Bucket=s3_bucket, Key=f"{prefix}index.faiss", Body=index_data)
-        
+
         with open(self.persist_dir / "metadata.json", "rb") as f:
             s3.put_object(Bucket=s3_bucket, Key=f"{prefix}metadata.json", Body=f.read())
-            
+
         # Store hash in DynamoDB (SEC-003)
         try:
             dynamodb.put_item(
@@ -203,15 +202,15 @@ class HybridFAISSStore:
         except Exception as e:
             logger.warning(f"Failed to store index hash in DynamoDB: {e}")
 
-    def load_from_s3(self, s3_bucket: str, prefix: str = "index/", aws_region: str | None = None) -> None:
+    def load_from_s3(self, s3_bucket: str, prefix: str = "index/", aws_region: str | None = None) -> None:  # noqa: E501
         """Download index from S3, verify integrity, and load."""
         s3 = boto3.client("s3", region_name=aws_region)
         dynamodb = boto3.client("dynamodb", region_name=aws_region)
-        
+
         # Download index
         response = s3.get_object(Bucket=s3_bucket, Key=f"{prefix}index.faiss")
         index_data = response["Body"].read()
-        
+
         # SEC-003: Verify integrity
         try:
             db_res = dynamodb.get_item(
@@ -222,7 +221,7 @@ class HybridFAISSStore:
                 expected_hash = db_res["Item"]["sha256_hash"]["S"]
                 actual_hash = hashlib.sha256(index_data).hexdigest()
                 if not secrets.compare_digest(actual_hash, expected_hash):
-                    raise RuntimeError("SecurityError: FAISS index integrity check failed — possible tampering")
+                    raise RuntimeError("SecurityError: FAISS index integrity check failed — possible tampering")  # noqa: E501
         except Exception as e:
             if "SecurityError" in str(e):
                 raise
@@ -231,9 +230,9 @@ class HybridFAISSStore:
         # Save downloaded data and load
         with open(self.persist_dir / "index.faiss", "wb") as f:
             f.write(index_data)
-            
+
         meta_res = s3.get_object(Bucket=s3_bucket, Key=f"{prefix}metadata.json")
         with open(self.persist_dir / "metadata.json", "wb") as f:
             f.write(meta_res["Body"].read())
-            
+
         self.load_local()

@@ -75,6 +75,7 @@ select = [
 ignore = [
     "D100", # Missing docstring in public module  (handled per-file)
     "D104", # Missing docstring in public package (handled per-file)
+    "E501", # Line too long
 ]
 
 [tool.ruff.lint.pydocstyle]
