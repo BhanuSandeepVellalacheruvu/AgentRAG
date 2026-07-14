@@ -31,10 +31,10 @@ async def chat_endpoint(request: ChatRequest) -> ChatResponse:
 async def status_endpoint() -> dict:
     """Return status and configuration details of the backend."""
     from agentrag.config import get_settings
+
     settings = get_settings()
     return {
         "use_mock_llm": settings.use_mock_llm,
         "use_mock_embeddings": settings.use_mock_embeddings,
         "aws_region": settings.aws_region,
     }
-
