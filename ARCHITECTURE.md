@@ -1,6 +1,6 @@
 # Architecture
 
-*This document is updated at each milestone. Current state: **M6 — Observability & Evaluation.***
+*This document is updated at each milestone. Current state: **M7 — Documentation Polish.***
 
 ## Data Flow (M1+)
 
