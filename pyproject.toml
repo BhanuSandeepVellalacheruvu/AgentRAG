@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentrag"
+version = "0.1.0"
+description = "A multi-agent RAG application"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic-settings>=2.0.0",
+    "pydantic>=2.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "mypy",
+    "pytest",
+    "pytest-cov",
+    "pre-commit",
+    "pip-tools"
+]
+test = [
+    "pytest",
+    "pytest-cov"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP"]
+ignore = []
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+addopts = "--cov=src/agentrag --cov-fail-under=80"
+testpaths = ["tests"]
