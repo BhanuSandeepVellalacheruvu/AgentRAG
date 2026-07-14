@@ -1,5 +1,7 @@
 """API routes for AgentRAG."""
 
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 
 from agentrag.agents.graph import graph
@@ -15,7 +17,7 @@ async def chat_endpoint(request: ChatRequest) -> ChatResponse:
         # Initialize state with the query
         initial_state = {"query": request.query}
 
-        # Invoke the LangGraph synchronously for now (Lambda is typically sync or wrapped)  # noqa: E501
+        # Invoke the LangGraph synchronously for now (Lambda is typically sync or wrapped)
         final_state = graph.invoke(initial_state)
 
         return ChatResponse(
@@ -28,7 +30,7 @@ async def chat_endpoint(request: ChatRequest) -> ChatResponse:
 
 
 @router.get("/status")
-async def status_endpoint() -> dict:
+async def status_endpoint() -> dict[str, Any]:
     """Return status and configuration details of the backend."""
     from agentrag.config import get_settings
 
