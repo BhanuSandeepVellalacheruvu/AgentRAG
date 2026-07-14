@@ -51,7 +51,7 @@ class BedrockEmbeddingProvider:
                 continue
 
             body = json.dumps({"inputText": text})
-            retries = 5
+            retries = 8
             backoff = 0.5
             while retries > 0:
                 try:
@@ -77,6 +77,9 @@ class BedrockEmbeddingProvider:
 
             response_body = json.loads(response.get("body").read())
             embeddings.append(response_body.get("embedding", []))
+
+            # Add a small delay to respect AWS Bedrock TPS limits
+            time.sleep(0.2)
 
         return embeddings
 
