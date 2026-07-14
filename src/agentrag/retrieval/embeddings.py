@@ -5,9 +5,11 @@ and a local mock for testing.
 """
 
 import json
+import time
 from typing import Protocol
 
 import boto3
+from botocore.exceptions import ClientError
 
 
 class EmbeddingProvider(Protocol):
@@ -49,12 +51,30 @@ class BedrockEmbeddingProvider:
                 continue
 
             body = json.dumps({"inputText": text})
-            response = self.client.invoke_model(
-                body=body,
-                modelId=self.model_id,
-                accept="application/json",
-                contentType="application/json",
-            )
+            retries = 5
+            backoff = 0.5
+            while retries > 0:
+                try:
+                    response = self.client.invoke_model(
+                        body=body,
+                        modelId=self.model_id,
+                        accept="application/json",
+                        contentType="application/json",
+                    )
+                    break
+                except ClientError as e:
+                    if e.response["Error"]["Code"] in (
+                        "ThrottlingException",
+                        "LimitExceededException",
+                    ):
+                        retries -= 1
+                        if retries == 0:
+                            raise
+                        time.sleep(backoff)
+                        backoff *= 2
+                    else:
+                        raise
+
             response_body = json.loads(response.get("body").read())
             embeddings.append(response_body.get("embedding", []))
 
