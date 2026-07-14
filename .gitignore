@@ -1,0 +1,33 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.coverage
+htmlcov/
+*.log
+
+# Environment
+.env
+
+# CDK / Node
+cdk.out/
+node_modules/
+.cdk.staging/
+*.js.map
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Evaluation reports
+eval_report.json
