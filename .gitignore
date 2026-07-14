@@ -28,3 +28,6 @@ node_modules/
 # IDE
 .vscode/
 .idea/
+
+# Evaluation reports
+eval_report.json
