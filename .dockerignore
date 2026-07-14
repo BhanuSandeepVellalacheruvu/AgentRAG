@@ -1,0 +1,13 @@
+.venv
+.git
+.github
+.mypy_cache
+.ruff_cache
+.pytest_cache
+data/index
+cdk.out
+**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
