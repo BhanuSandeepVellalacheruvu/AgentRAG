@@ -75,12 +75,12 @@ jobs:
         run: uv sync --all-extras --frozen
 
       - name: Set up Node.js
-        uses: actions/setup-node@3967849b24c824d2214ae6aa4f38539b2cf1a957  # v4.2.0
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@e3dd8a4cb17e0573650d18224c0e11971849a997  # v4.0.2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
