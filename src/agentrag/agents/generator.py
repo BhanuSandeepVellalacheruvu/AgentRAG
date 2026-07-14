@@ -1,7 +1,10 @@
 """Generator agent for the LangGraph pipeline."""
 
+from typing import Any
+
 from langchain_aws import ChatBedrock
 
+from agentrag.agents.mock_llm import MockChatBedrock
 from agentrag.agents.state import AgentState
 from agentrag.config import get_settings
 
@@ -11,11 +14,14 @@ def generate_response(state: AgentState) -> AgentState:
     settings = get_settings()
 
     # We use Sonnet for generation because it provides better reasoning
-    llm = ChatBedrock(  # type: ignore[call-arg]
-        model_id="anthropic.claude-3-sonnet-20240229-v1:0",
-        region_name=settings.aws_region,
-        client=None,
-    )
+    if settings.use_mock_llm:
+        llm: Any = MockChatBedrock(model_id="anthropic.claude-3-sonnet-20240229-v1:0")
+    else:
+        llm = ChatBedrock(  # type: ignore[call-arg]
+            model_id="anthropic.claude-3-sonnet-20240229-v1:0",
+            region_name=settings.aws_region,
+            client=None,
+        )
 
     query = state["query"]
     context = state.get("context", [])

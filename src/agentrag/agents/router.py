@@ -1,10 +1,11 @@
 """Router agent for the LangGraph pipeline."""
 
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 from langchain_aws import ChatBedrock
 from pydantic import BaseModel, Field
 
+from agentrag.agents.mock_llm import MockChatBedrock
 from agentrag.agents.state import AgentState
 from agentrag.config import get_settings
 
@@ -25,13 +26,16 @@ def route_query(state: AgentState) -> AgentState:
     """Determine the next step based on the query."""
     settings = get_settings()
 
-    # Initialize the Bedrock model
+    # Initialize the Bedrock model or Mock LLM
     # We use a fast/cheap model like Haiku for routing
-    llm = ChatBedrock(  # type: ignore[call-arg]
-        model_id="anthropic.claude-3-haiku-20240307-v1:0",
-        region_name=settings.aws_region,
-        client=None,  # will use default boto3 session
-    )
+    if settings.use_mock_llm:
+        llm: Any = MockChatBedrock(model_id="anthropic.claude-3-haiku-20240307-v1:0")
+    else:
+        llm = ChatBedrock(  # type: ignore[call-arg]
+            model_id="anthropic.claude-3-haiku-20240307-v1:0",
+            region_name=settings.aws_region,
+            client=None,  # will use default boto3 session
+        )
 
     # Bind structured output
     router_llm = llm.with_structured_output(RouteDecision)

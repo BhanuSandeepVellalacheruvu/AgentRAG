@@ -44,6 +44,10 @@ class Settings(BaseSettings):
         False,
         description="Whether to use mock embeddings instead of AWS Bedrock Titan.",
     )
+    use_mock_llm: bool = Field(
+        False,
+        description="Whether to use mock LLMs instead of AWS Bedrock.",
+    )
 
     # S3 — free tier: 5 GB storage, 20k GET, 2k PUT/month
     s3_bucket_name: str = Field(

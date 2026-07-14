@@ -1,10 +1,11 @@
 """Critic agent for the LangGraph pipeline."""
 
-from typing import cast
+from typing import Any, cast
 
 from langchain_aws import ChatBedrock
 from pydantic import BaseModel, Field
 
+from agentrag.agents.mock_llm import MockChatBedrock
 from agentrag.agents.state import AgentState
 from agentrag.config import get_settings
 
@@ -29,11 +30,14 @@ def critique_generation(state: AgentState) -> AgentState:
     settings = get_settings()
 
     # We use a fast/cheap model for critique
-    llm = ChatBedrock(  # type: ignore[call-arg]
-        model_id="anthropic.claude-3-haiku-20240307-v1:0",
-        region_name=settings.aws_region,
-        client=None,
-    )
+    if settings.use_mock_llm:
+        llm: Any = MockChatBedrock(model_id="anthropic.claude-3-haiku-20240307-v1:0")
+    else:
+        llm = ChatBedrock(  # type: ignore[call-arg]
+            model_id="anthropic.claude-3-haiku-20240307-v1:0",
+            region_name=settings.aws_region,
+            client=None,
+        )
 
     critic_llm = llm.with_structured_output(Critique)
 
