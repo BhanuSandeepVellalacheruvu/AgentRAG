@@ -25,7 +25,7 @@ def test_mock_embedding_provider() -> None:
     assert all(x == 0.0 for x in embeddings[2])
 
     # Non-empty should be normalized
-    norm = sum(x*x for x in embeddings[0]) ** 0.5
+    norm = sum(x * x for x in embeddings[0]) ** 0.5
     assert abs(norm - 1.0) < 1e-6
 
 
@@ -37,7 +37,11 @@ def test_bedrock_embedding_provider(mock_boto3_client: MagicMock) -> None:
 
     # Setup mock response
     mock_response = {
-        "body": MagicMock(read=MagicMock(return_value=json.dumps({"embedding": [0.1, 0.2, 0.3]}).encode("utf-8")))  # noqa: E501
+        "body": MagicMock(
+            read=MagicMock(
+                return_value=json.dumps({"embedding": [0.1, 0.2, 0.3]}).encode("utf-8")
+            )
+        )  # noqa: E501
     }
     mock_client.invoke_model.return_value = mock_response
 

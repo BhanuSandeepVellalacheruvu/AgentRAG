@@ -27,7 +27,9 @@ class Document:
 class DocumentLoader:
     """Loads documents from various sources."""
 
-    def __init__(self, s3_bucket: str | None = None, aws_region: str | None = None) -> None:  # noqa: E501
+    def __init__(
+        self, s3_bucket: str | None = None, aws_region: str | None = None
+    ) -> None:  # noqa: E501
         """Initialize the loader.
 
         Args:
@@ -45,7 +47,9 @@ class DocumentLoader:
             self._s3_client = boto3.client("s3", region_name=self.aws_region)
         return self._s3_client
 
-    def _parse_jsonl_line(self, line: str, filename: str, line_number: int) -> Document | None:  # noqa: E501
+    def _parse_jsonl_line(
+        self, line: str, filename: str, line_number: int
+    ) -> Document | None:  # noqa: E501
         """Parse a single JSONL line containing a ChatML conversation."""
         try:
             data = json.loads(line)
@@ -54,8 +58,12 @@ class DocumentLoader:
                 return None
 
             # Extract user and assistant turns
-            user_msg = next((m["content"] for m in messages if m["role"] == "user"), None)  # noqa: E501
-            assistant_msg = next((m["content"] for m in messages if m["role"] == "assistant"), None)  # noqa: E501
+            user_msg = next(
+                (m["content"] for m in messages if m["role"] == "user"), None
+            )  # noqa: E501
+            assistant_msg = next(
+                (m["content"] for m in messages if m["role"] == "assistant"), None
+            )  # noqa: E501
 
             if not user_msg or not assistant_msg:
                 return None

@@ -66,7 +66,7 @@ class HybridFAISSStore:
         # Embed in batches
         all_embeddings = []
         for i in range(0, len(texts), batch_size):
-            batch_texts = texts[i:i + batch_size]
+            batch_texts = texts[i : i + batch_size]
             batch_embeddings = self.embedding_provider.embed_texts(batch_texts)
             all_embeddings.extend(batch_embeddings)
 
@@ -88,7 +88,9 @@ class HybridFAISSStore:
         else:
             self.bm25 = BM25Okapi(tokenized_corpus)
 
-    def search(self, query: str, top_k: int = 5, alpha: float = 0.5) -> list[SearchResult]:  # noqa: E501
+    def search(
+        self, query: str, top_k: int = 5, alpha: float = 0.5
+    ) -> list[SearchResult]:  # noqa: E501
         """Perform hybrid search combining FAISS and BM25.
 
         Args:
@@ -101,7 +103,9 @@ class HybridFAISSStore:
             return []
 
         # 1. Dense Search (FAISS)
-        query_vector = np.array(self.embedding_provider.embed_texts([query]), dtype=np.float32)  # noqa: E501
+        query_vector = np.array(
+            self.embedding_provider.embed_texts([query]), dtype=np.float32
+        )  # noqa: E501
         faiss.normalize_L2(query_vector)
 
         # Get more results than top_k for better fusion
@@ -110,7 +114,11 @@ class HybridFAISSStore:
 
         # 2. Sparse Search (BM25)
         tokenized_query = query.lower().split()
-        sparse_scores = self.bm25.get_scores(tokenized_query) if self.bm25 else [0.0] * len(self.chunks)  # noqa: E501
+        sparse_scores = (
+            self.bm25.get_scores(tokenized_query)
+            if self.bm25
+            else [0.0] * len(self.chunks)
+        )  # noqa: E501
 
         # Normalize scores to [0, 1] for fusion
         def min_max_norm(scores: list[float] | np.ndarray) -> np.ndarray:
@@ -138,7 +146,11 @@ class HybridFAISSStore:
         results = []
         for idx in top_indices:
             if hybrid_scores[idx] > 0.0:  # Only return relevant results
-                results.append(SearchResult(chunk=self.chunks[idx], score=float(hybrid_scores[idx])))  # noqa: E501
+                results.append(
+                    SearchResult(
+                        chunk=self.chunks[idx], score=float(hybrid_scores[idx])
+                    )
+                )  # noqa: E501
 
         return results
 
@@ -170,7 +182,9 @@ class HybridFAISSStore:
             all_tokenized = [c.text.lower().split() for c in self.chunks]
             self.bm25 = BM25Okapi(all_tokenized)
 
-    def sync_to_s3(self, s3_bucket: str, prefix: str = "index/", aws_region: str | None = None) -> None:  # noqa: E501
+    def sync_to_s3(
+        self, s3_bucket: str, prefix: str = "index/", aws_region: str | None = None
+    ) -> None:  # noqa: E501
         """Upload index files to S3 and store hash in DynamoDB for integrity."""
         self.save_local()
 
@@ -197,12 +211,14 @@ class HybridFAISSStore:
                 Item={
                     "index_id": {"S": f"{s3_bucket}/{prefix}index.faiss"},
                     "sha256_hash": {"S": index_hash},
-                }
+                },
             )
         except Exception as e:
             logger.warning(f"Failed to store index hash in DynamoDB: {e}")
 
-    def load_from_s3(self, s3_bucket: str, prefix: str = "index/", aws_region: str | None = None) -> None:  # noqa: E501
+    def load_from_s3(
+        self, s3_bucket: str, prefix: str = "index/", aws_region: str | None = None
+    ) -> None:  # noqa: E501
         """Download index from S3, verify integrity, and load."""
         s3 = boto3.client("s3", region_name=aws_region)
         dynamodb = boto3.client("dynamodb", region_name=aws_region)
@@ -215,13 +231,15 @@ class HybridFAISSStore:
         try:
             db_res = dynamodb.get_item(
                 TableName="agentrag-index-metadata",
-                Key={"index_id": {"S": f"{s3_bucket}/{prefix}index.faiss"}}
+                Key={"index_id": {"S": f"{s3_bucket}/{prefix}index.faiss"}},
             )
             if "Item" in db_res:
                 expected_hash = db_res["Item"]["sha256_hash"]["S"]
                 actual_hash = hashlib.sha256(index_data).hexdigest()
                 if not secrets.compare_digest(actual_hash, expected_hash):
-                    raise RuntimeError("SecurityError: FAISS index integrity check failed — possible tampering")  # noqa: E501
+                    raise RuntimeError(
+                        "SecurityError: FAISS index integrity check failed — possible tampering"  # noqa: E501
+                    )  # noqa: E501
         except Exception as e:
             if "SecurityError" in str(e):
                 raise

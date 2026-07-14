@@ -19,12 +19,16 @@ def temp_store_dir(tmp_path: Path) -> Path:
 def test_add_chunks_and_search(temp_store_dir: Path) -> None:
     """Test adding chunks and searching hybrid index."""
     provider = MockEmbeddingProvider(dimension=5)
-    store = HybridFAISSStore(embedding_provider=provider, dimension=5, persist_dir=temp_store_dir)  # noqa: E501
+    store = HybridFAISSStore(
+        embedding_provider=provider, dimension=5, persist_dir=temp_store_dir
+    )  # noqa: E501
 
     chunks = [
         Chunk(text="apple banana", filename="1.txt", source="1.txt", chunk_index=0),
         Chunk(text="orange grapes", filename="2.txt", source="2.txt", chunk_index=0),
-        Chunk(text="apple orange kiwi", filename="3.txt", source="3.txt", chunk_index=0),  # noqa: E501
+        Chunk(
+            text="apple orange kiwi", filename="3.txt", source="3.txt", chunk_index=0
+        ),  # noqa: E501
     ]
 
     store.add_chunks(chunks)
@@ -40,14 +44,20 @@ def test_add_chunks_and_search(temp_store_dir: Path) -> None:
     assert res[1].chunk.filename in ["1.txt", "3.txt"]
 
     # Test empty chunks array
-    empty_store = HybridFAISSStore(embedding_provider=provider, dimension=5, persist_dir=temp_store_dir.parent / "empty")  # noqa: E501
+    empty_store = HybridFAISSStore(
+        embedding_provider=provider,
+        dimension=5,
+        persist_dir=temp_store_dir.parent / "empty",
+    )  # noqa: E501
     assert empty_store.search("test") == []
 
 
 def test_save_and_load_local(temp_store_dir: Path) -> None:
     """Test saving and loading the index locally."""
     provider = MockEmbeddingProvider(dimension=5)
-    store = HybridFAISSStore(embedding_provider=provider, dimension=5, persist_dir=temp_store_dir)  # noqa: E501
+    store = HybridFAISSStore(
+        embedding_provider=provider, dimension=5, persist_dir=temp_store_dir
+    )  # noqa: E501
 
     chunks = [Chunk(text="test text", filename="1.txt", source="1.txt", chunk_index=0)]
     store.add_chunks(chunks)
@@ -57,7 +67,9 @@ def test_save_and_load_local(temp_store_dir: Path) -> None:
     assert (temp_store_dir / "metadata.json").exists()
 
     # Load into new store
-    new_store = HybridFAISSStore(embedding_provider=provider, dimension=5, persist_dir=temp_store_dir)  # noqa: E501
+    new_store = HybridFAISSStore(
+        embedding_provider=provider, dimension=5, persist_dir=temp_store_dir
+    )  # noqa: E501
     new_store.load_local()
 
     assert new_store.index.ntotal == 1
@@ -68,7 +80,9 @@ def test_save_and_load_local(temp_store_dir: Path) -> None:
 def test_load_local_not_found(temp_store_dir: Path) -> None:
     """Test loading non-existent index raises FileNotFoundError."""
     provider = MockEmbeddingProvider(dimension=5)
-    store = HybridFAISSStore(embedding_provider=provider, dimension=5, persist_dir=temp_store_dir)  # noqa: E501
+    store = HybridFAISSStore(
+        embedding_provider=provider, dimension=5, persist_dir=temp_store_dir
+    )  # noqa: E501
     with pytest.raises(FileNotFoundError):
         store.load_local()
 
@@ -78,15 +92,19 @@ def test_sync_to_s3(mock_boto3_client: MagicMock, temp_store_dir: Path) -> None:
     """Test syncing index to S3 and DynamoDB."""
     mock_s3 = MagicMock()
     mock_ddb = MagicMock()
+
     def get_client(service, **kwargs):
         if service == "s3":
             return mock_s3
         if service == "dynamodb":
             return mock_ddb
+
     mock_boto3_client.side_effect = get_client
 
     provider = MockEmbeddingProvider(dimension=5)
-    store = HybridFAISSStore(embedding_provider=provider, dimension=5, persist_dir=temp_store_dir)  # noqa: E501
+    store = HybridFAISSStore(
+        embedding_provider=provider, dimension=5, persist_dir=temp_store_dir
+    )  # noqa: E501
     store.add_chunks([Chunk(text="t", filename="1.txt", source="1", chunk_index=0)])
 
     store.sync_to_s3("my-bucket", prefix="idx/")
@@ -100,11 +118,15 @@ def test_sync_to_s3(mock_boto3_client: MagicMock, temp_store_dir: Path) -> None:
 
 
 @patch("boto3.client")
-def test_load_from_s3_success(mock_boto3_client: MagicMock, temp_store_dir: Path) -> None:  # noqa: E501
+def test_load_from_s3_success(
+    mock_boto3_client: MagicMock, temp_store_dir: Path
+) -> None:  # noqa: E501
     """Test loading from S3 with successful integrity check."""
     # First create a local index to generate valid faiss data
     provider = MockEmbeddingProvider(dimension=5)
-    store = HybridFAISSStore(embedding_provider=provider, dimension=5, persist_dir=temp_store_dir)  # noqa: E501
+    store = HybridFAISSStore(
+        embedding_provider=provider, dimension=5, persist_dir=temp_store_dir
+    )  # noqa: E501
     store.add_chunks([Chunk(text="t", filename="1.txt", source="1", chunk_index=0)])
     store.save_local()
 
@@ -117,50 +139,59 @@ def test_load_from_s3_success(mock_boto3_client: MagicMock, temp_store_dir: Path
 
     mock_s3 = MagicMock()
     mock_ddb = MagicMock()
+
     def get_client(service, **kwargs):
         if service == "s3":
             return mock_s3
         if service == "dynamodb":
             return mock_ddb
+
     mock_boto3_client.side_effect = get_client
 
     def get_object_side_effect(Bucket, Key):
         if "faiss" in Key:
             return {"Body": MagicMock(read=MagicMock(return_value=faiss_data))}
         return {"Body": MagicMock(read=MagicMock(return_value=meta_data))}
+
     mock_s3.get_object.side_effect = get_object_side_effect
 
-    mock_ddb.get_item.return_value = {
-        "Item": {"sha256_hash": {"S": valid_hash}}
-    }
+    mock_ddb.get_item.return_value = {"Item": {"sha256_hash": {"S": valid_hash}}}
 
     # Load into new dir
     new_dir = temp_store_dir.parent / "new_store"
-    new_store = HybridFAISSStore(embedding_provider=provider, dimension=5, persist_dir=new_dir)  # noqa: E501
+    new_store = HybridFAISSStore(
+        embedding_provider=provider, dimension=5, persist_dir=new_dir
+    )  # noqa: E501
     new_store.load_from_s3("bucket")
 
     assert new_store.index.ntotal == 1
 
 
 @patch("boto3.client")
-def test_load_from_s3_integrity_failure(mock_boto3_client: MagicMock, temp_store_dir: Path) -> None:  # noqa: E501
+def test_load_from_s3_integrity_failure(
+    mock_boto3_client: MagicMock, temp_store_dir: Path
+) -> None:  # noqa: E501
     """Test loading from S3 fails when integrity check fails."""
     mock_s3 = MagicMock()
     mock_ddb = MagicMock()
+
     def get_client(service, **kwargs):
         if service == "s3":
             return mock_s3
         if service == "dynamodb":
             return mock_ddb
+
     mock_boto3_client.side_effect = get_client
 
-    mock_s3.get_object.return_value = {"Body": MagicMock(read=MagicMock(return_value=b"fake data"))}  # noqa: E501
-    mock_ddb.get_item.return_value = {
-        "Item": {"sha256_hash": {"S": "wrong_hash"}}
-    }
+    mock_s3.get_object.return_value = {
+        "Body": MagicMock(read=MagicMock(return_value=b"fake data"))
+    }  # noqa: E501
+    mock_ddb.get_item.return_value = {"Item": {"sha256_hash": {"S": "wrong_hash"}}}
 
     provider = MockEmbeddingProvider(dimension=5)
-    store = HybridFAISSStore(embedding_provider=provider, dimension=5, persist_dir=temp_store_dir)  # noqa: E501
+    store = HybridFAISSStore(
+        embedding_provider=provider, dimension=5, persist_dir=temp_store_dir
+    )  # noqa: E501
 
     with pytest.raises(RuntimeError, match="integrity check failed"):
         store.load_from_s3("bucket")

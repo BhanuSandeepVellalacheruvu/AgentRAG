@@ -17,20 +17,35 @@ def temp_docs_dir(tmp_path: Path) -> Path:
 
     # Valid JSONL
     jsonl_content = [
-        {"messages": [{"role": "system", "content": "You are helpful."}, {"role": "user", "content": "Hello?"}, {"role": "assistant", "content": "Hi there!"}]},  # noqa: E501
-        {"messages": [{"role": "user", "content": "What is the policy?"}, {"role": "assistant", "content": "The policy is X."}]}  # noqa: E501
+        {
+            "messages": [
+                {"role": "system", "content": "You are helpful."},
+                {"role": "user", "content": "Hello?"},
+                {"role": "assistant", "content": "Hi there!"},
+            ]
+        },  # noqa: E501
+        {
+            "messages": [
+                {"role": "user", "content": "What is the policy?"},
+                {"role": "assistant", "content": "The policy is X."},
+            ]
+        },  # noqa: E501
     ]
     with open(docs_dir / "data.jsonl", "w") as f:
-        f.write("\n") # Empty line
+        f.write("\n")  # Empty line
         for item in jsonl_content:
             f.write(json.dumps(item) + "\n")
 
     # Invalid JSONL missing user or assistant
     with open(docs_dir / "bad.jsonl", "w") as f:
         f.write("not valid json\n")
-        f.write(json.dumps({"messages": []}) + "\n") # Empty messages
-        f.write(json.dumps({"messages": [{"role": "system", "content": "x"}]}) + "\n") # Missing user/assistant  # noqa: E501
-        f.write(json.dumps({"messages": [{"role": "user", "content": "q"}]}) + "\n") # Missing assistant  # noqa: E501
+        f.write(json.dumps({"messages": []}) + "\n")  # Empty messages
+        f.write(
+            json.dumps({"messages": [{"role": "system", "content": "x"}]}) + "\n"
+        )  # Missing user/assistant  # noqa: E501
+        f.write(
+            json.dumps({"messages": [{"role": "user", "content": "q"}]}) + "\n"
+        )  # Missing assistant  # noqa: E501
 
     # Valid Markdown
     with open(docs_dir / "doc.md", "w") as f:
@@ -59,11 +74,15 @@ def test_load_local_directory(temp_docs_dir: Path) -> None:
     # Expect 2 from data.jsonl, 1 from doc.md
     assert len(docs) == 3
 
-    jsonl_doc1 = next(d for d in docs if d.filename == "data.jsonl" and "Hi there!" in d.text)  # noqa: E501
+    jsonl_doc1 = next(
+        d for d in docs if d.filename == "data.jsonl" and "Hi there!" in d.text
+    )  # noqa: E501
     assert jsonl_doc1.text == "Q: Hello?\nA: Hi there!"
     assert jsonl_doc1.source == "data.jsonl:2"
 
-    jsonl_doc2 = next(d for d in docs if d.filename == "data.jsonl" and "policy is X" in d.text)  # noqa: E501
+    jsonl_doc2 = next(
+        d for d in docs if d.filename == "data.jsonl" and "policy is X" in d.text
+    )  # noqa: E501
     assert jsonl_doc2.text == "Q: What is the policy?\nA: The policy is X."
 
     md_doc = next(d for d in docs if d.filename == "doc.md")
@@ -91,21 +110,30 @@ def test_load_s3_prefix(mock_boto3_client: MagicMock) -> None:
         {
             "Contents": [
                 {"Key": "docs/data.jsonl"},
-                {"Key": "docs/"}, # Directory object, should be skipped
+                {"Key": "docs/"},  # Directory object, should be skipped
                 {"Key": "docs/readme.txt"},
                 {"Key": "docs/empty.txt"},
             ]
         },
         {
             # Page without Contents to test edge case
-        }
+        },
     ]
 
     # Mock get_object responses
     def mock_get_object(Bucket, Key):
         if Key == "docs/data.jsonl":
-            content = "\n" + json.dumps({"messages": [{"role": "user", "content": "q1"}, {"role": "assistant", "content": "a1"}]})  # noqa: E501
-            return {"Body": MagicMock(read=MagicMock(return_value=content.encode("utf-8")))}  # noqa: E501
+            content = "\n" + json.dumps(
+                {
+                    "messages": [
+                        {"role": "user", "content": "q1"},
+                        {"role": "assistant", "content": "a1"},
+                    ]
+                }
+            )  # noqa: E501
+            return {
+                "Body": MagicMock(read=MagicMock(return_value=content.encode("utf-8")))
+            }  # noqa: E501
         elif Key == "docs/readme.txt":
             return {"Body": MagicMock(read=MagicMock(return_value=b"Hello text"))}
         elif Key == "docs/empty.txt":

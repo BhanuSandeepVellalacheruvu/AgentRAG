@@ -57,10 +57,12 @@ def test_chunk_document_with_overlap() -> None:
     assert chunks[0].text == "012345678901234"
     assert chunks[0].chunk_index == 0
 
-    assert chunks[1].text == "012345678901234" # starting at index 10: "012345678901234"
+    assert (
+        chunks[1].text == "012345678901234"
+    )  # starting at index 10: "012345678901234"
     assert chunks[1].chunk_index == 1
 
-    assert chunks[2].text == "0123456789" # starting at index 20
+    assert chunks[2].text == "0123456789"  # starting at index 20
     assert chunks[2].chunk_index == 2
 
 
@@ -86,10 +88,10 @@ def test_chunk_documents() -> None:
     chunker = Chunker(chunk_size=10, chunk_overlap=2)
     docs = [
         Document(text="Doc one text", filename="1.txt", source="1.txt"),
-        Document(text="Doc two text", filename="2.txt", source="2.txt")
+        Document(text="Doc two text", filename="2.txt", source="2.txt"),
     ]
 
     all_chunks = chunker.chunk_documents(docs)
-    assert len(all_chunks) == 4 # Should have chunks from both
+    assert len(all_chunks) == 4  # Should have chunks from both
     assert all_chunks[0].filename == "1.txt"
     assert all_chunks[-1].filename == "2.txt"

@@ -80,7 +80,7 @@ class MockEmbeddingProvider:
             length = len(text)
             vec = [(float(i + length) % 10.0) / 10.0 for i in range(self.dimension)]
             # Normalize it roughly so FAISS cosine sim makes sense
-            norm = sum(x*x for x in vec) ** 0.5
+            norm = sum(x * x for x in vec) ** 0.5
             vec = [x / (norm or 1.0) for x in vec]
             embeddings.append(vec)
 
