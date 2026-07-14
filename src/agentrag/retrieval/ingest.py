@@ -31,6 +31,12 @@ def main() -> None:
         action="store_true",
         help="Use mock embeddings instead of AWS Bedrock Titan.",
     )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=50,
+        help="Limit number of documents to ingest (default 50, set <= 0 for all).",
+    )
     args = parser.parse_args()
 
     settings = get_settings()
@@ -48,6 +54,12 @@ def main() -> None:
     loader = DocumentLoader()
     documents = list(loader.load_local_directory(data_dir_path))
     print(f"Loaded {len(documents)} document turns.")
+
+    if args.limit > 0:
+        print(
+            f"Limiting ingestion to the first {args.limit} documents for speed and AWS rate-limiting safety."  # noqa: E501
+        )
+        documents = documents[: args.limit]
 
     print("Chunking documents...")
     chunker = Chunker(chunk_size=400, chunk_overlap=80)
