@@ -4,7 +4,19 @@
 
 ## Data Flow (M1+)
 
-> Diagram to be filled in after M1 (Ingestion & Retrieval) and M2 (Agents).
+```mermaid
+graph TD
+    A[HR Dataset / JSONL] -->|DocumentLoader| B(Raw Documents)
+    B -->|Chunker| C(Overlapping Chunks)
+    C -->|Bedrock Titan Embeddings| D[FAISS Vector Store]
+    C -->|BM25Okapi| D
+    
+    Q[User Query] -->|HybridFAISSStore.search| E{Hybrid Search}
+    D -->|FAISS L2 + BM25 scores| E
+    E --> F[Top-K Ranked Results]
+```
+
+**Cost Note**: Bedrock Titan text embeddings are used. At ~129k tokens for the HR dataset, the one-time embedding cost is ~$0.003. The FAISS index is stored locally and on S3 (well within the 5 GB free tier).
 
 ## Agent Graph (M2+)
 
