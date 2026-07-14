@@ -1,6 +1,6 @@
 # Architecture
 
-*This document is updated at each milestone. Current state: **M5 — CI/CD Pipeline.***
+*This document is updated at each milestone. Current state: **M6 — Observability & Evaluation.***
 
 ## Data Flow (M1+)
 
@@ -78,4 +78,32 @@ graph LR
 
 ## Observability & Evaluation (M6+)
 
-> Tracing and eval harness documentation to be filled in after M6.
+AgentRAG enforces comprehensive tracing and automated evaluation to ensure model reliability and operational monitoring:
+
+### 1. Observability Tracing Flow
+Every user chat query generates a trace log that is saved to the DynamoDB table `agentrag-traces` (configured via environment variables):
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant API as routes.py (chat_endpoint)
+    participant Graph as graph.py
+    participant Dynamo as DynamoDB (agentrag-traces)
+    
+    User->>API: POST /api/chat (query, session_id)
+    API->>API: Start latency timer
+    API->>Graph: Invoke LangGraph workflow
+    Graph-->>API: Return generation, steps, groundedness
+    API->>API: Compute latency
+    API->>Dynamo: put_item (id, session_id, query, reply, steps, grounded, latency_ms, timestamp)
+    API-->>User: Return ChatResponse
+```
+
+- **Resilience**: Boto3 client operations are wrapped in safe try/except blocks to ensure that database issues do not block the API response from being returned to the user.
+
+### 2. Evaluation Harness
+The system includes a CLI evaluation script (`src/agentrag/observability/evaluation.py`) that executes queries against the LangGraph workflow and measures key metrics:
+
+- **Faithfulness/Groundedness Rate**: Verified by invoking the critique LLM (or mock equivalent) to check if the reply hallucinations are minimized.
+- **Latency Performance**: Average latency computed across evaluation runs.
+- **Reporting**: Outputs report metrics in a structured `eval_report.json` document.
