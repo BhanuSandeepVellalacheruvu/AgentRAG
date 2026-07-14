@@ -37,7 +37,7 @@ class HybridFAISSStore:
         self,
         embedding_provider: EmbeddingProvider,
         dimension: int = 1024,
-        persist_dir: str | Path = "./data/index",
+        persist_dir: str | Path = "/tmp/data/index",
     ) -> None:
         """Initialize the store.
 

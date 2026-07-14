@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     )
 
     faiss_local_path: str = Field(
-        "./data/index",
+        "/tmp/data/index",
         description="Local directory to save/load FAISS index.",
     )
 
