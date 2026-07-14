@@ -1,6 +1,6 @@
 """Tests for src/agentrag/agents/retriever.py."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 from agentrag.agents.retriever import get_store, retrieve_context
 from agentrag.retrieval.chunker import Chunk
@@ -59,6 +59,6 @@ def test_retrieve_context(mock_get_store: MagicMock) -> None:
     state = {"query": "test query"}
     new_state = retrieve_context(state)  # type: ignore
 
-    mock_store.search.assert_called_once_with("test query", top_k=3)
+    mock_store.search.assert_called_once_with("test query", top_k=3, alpha=ANY)
     assert new_state["context"] == expected_result
     assert new_state["steps"] == ["retrieved_context"]

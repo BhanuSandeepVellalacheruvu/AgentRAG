@@ -117,4 +117,27 @@ document.addEventListener("DOMContentLoaded", () => {
         chatContainer.appendChild(messageDiv);
         return messageDiv;
     }
+
+    async function updateStatus() {
+        const statusIndicator = document.getElementById("status-indicator");
+        if (!statusIndicator) return;
+        try {
+            const response = await fetch("/api/status");
+            if (response.ok) {
+                const data = await response.json();
+                if (data.use_mock_llm) {
+                    statusIndicator.innerHTML = '<span class="pulse mock-pulse"></span> Offline (Mock Mode)';
+                    statusIndicator.classList.add("mock-mode");
+                } else {
+                    statusIndicator.innerHTML = '<span class="pulse"></span> Online (AWS Bedrock)';
+                    statusIndicator.classList.remove("mock-mode");
+                }
+            } else {
+                statusIndicator.innerHTML = '<span class="pulse error-pulse"></span> Offline (Error)';
+            }
+        } catch (error) {
+            statusIndicator.innerHTML = '<span class="pulse error-pulse"></span> Offline (Error)';
+        }
+    }
+    updateStatus();
 });

@@ -13,6 +13,7 @@ def test_route_query_success(
     """Test successful routing."""
     mock_settings = MagicMock()
     mock_settings.aws_region = "us-east-1"
+    mock_settings.use_mock_llm = False
     mock_get_settings.return_value = mock_settings
 
     mock_llm = MagicMock()
@@ -39,7 +40,10 @@ def test_route_query_fallback_on_error(
     mock_get_settings: MagicMock, mock_chat_bedrock: MagicMock
 ) -> None:
     """Test router falls back to 'retrieve' on LLM error."""
-    mock_get_settings.return_value = MagicMock(aws_region="us-east-1")
+    mock_settings = MagicMock()
+    mock_settings.aws_region = "us-east-1"
+    mock_settings.use_mock_llm = False
+    mock_get_settings.return_value = mock_settings
 
     mock_llm = MagicMock()
     mock_chat_bedrock.return_value = mock_llm

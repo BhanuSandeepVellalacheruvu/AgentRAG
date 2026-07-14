@@ -97,6 +97,7 @@ python_version = "3.11"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
+exclude = ["cdk.out", "infra/cdk.out"]
 # Ignore missing stubs for third-party libs that ship inline types
 ignore_missing_imports = true
 
@@ -106,6 +107,15 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 addopts = "--cov=src/agentrag --cov-fail-under=80 --cov-report=term-missing"
 testpaths = ["tests"]
+
+# ---------------------------------------------------------------------------
+# Coverage — exclude CLI and infra scripts from target coverage
+# ---------------------------------------------------------------------------
+[tool.coverage.run]
+omit = [
+    "src/agentrag/infra/*",
+    "src/agentrag/retrieval/ingest.py",
+]
 
 [dependency-groups]
 dev = [

@@ -124,10 +124,34 @@ body::after {
     animation: pulsing 2s infinite;
 }
 
+.pulse.mock-pulse {
+    background-color: #f59e0b;
+    box-shadow: 0 0 10px #f59e0b;
+    animation: mock-pulsing 2s infinite;
+}
+
+.pulse.error-pulse {
+    background-color: var(--error-color);
+    box-shadow: 0 0 10px var(--error-color);
+    animation: error-pulsing 2s infinite;
+}
+
 @keyframes pulsing {
     0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
     70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
     100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes mock-pulsing {
+    0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+@keyframes error-pulsing {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 }
 
 .chat-container {

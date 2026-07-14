@@ -15,6 +15,7 @@ def test_generate_response_with_context(
     """Test generating a response with context."""
     mock_settings = MagicMock()
     mock_settings.aws_region = "us-east-1"
+    mock_settings.use_mock_llm = False
     mock_get_settings.return_value = mock_settings
 
     mock_llm = MagicMock()
@@ -53,7 +54,10 @@ def test_generate_response_no_context(
     mock_get_settings: MagicMock, mock_chat_bedrock: MagicMock
 ) -> None:
     """Test generating a response directly without context."""
-    mock_get_settings.return_value = MagicMock(aws_region="us-east-1")
+    mock_settings = MagicMock()
+    mock_settings.aws_region = "us-east-1"
+    mock_settings.use_mock_llm = False
+    mock_get_settings.return_value = mock_settings
 
     mock_llm = MagicMock()
     mock_chat_bedrock.return_value = mock_llm

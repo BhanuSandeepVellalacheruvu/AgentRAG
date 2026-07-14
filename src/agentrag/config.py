@@ -5,9 +5,12 @@ Fails loudly on missing required vars and unexpected extra vars at import time.
 """
 
 import re
+from pathlib import Path
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_ENV_FILE_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
 
 
 class Settings(BaseSettings):
@@ -19,9 +22,19 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_ENV_FILE_PATH),
         env_file_encoding="utf-8",
         extra="forbid",  # Fail loudly on unknown env vars (SEC-009)
+    )
+
+    # AWS credentials (optional, for local development)
+    aws_access_key_id: str | None = Field(
+        None,
+        description="AWS access key ID.",
+    )
+    aws_secret_access_key: str | None = Field(
+        None,
+        description="AWS secret access key.",
     )
 
     # AWS core
@@ -68,7 +81,7 @@ class Settings(BaseSettings):
 
     # Budget alarm threshold
     budget_alarm_threshold: float = Field(
-        2.0,
+        0.5,
         gt=0,
         description="Monthly USD threshold for the AWS Budget alert.",
     )
