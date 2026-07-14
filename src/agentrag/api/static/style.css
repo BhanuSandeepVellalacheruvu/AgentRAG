@@ -220,12 +220,14 @@ body::after {
 
 .step-badge {
     display: inline-block;
-    padding: 4px 8px;
+    padding: 4px 10px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
     border-radius: 12px;
-    margin-right: 6px;
+    margin-right: 4px;
     margin-bottom: 6px;
+    font-size: 0.75rem;
+    letter-spacing: 0.3px;
 }
 
 .grounded-badge {

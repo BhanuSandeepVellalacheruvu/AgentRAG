@@ -51,7 +51,9 @@ def get_store() -> HybridFAISSStore:
 
 def retrieve_context(state: AgentState) -> AgentState:
     """Retrieve documents using the query."""
+    settings = get_settings()
     store = get_store()
-    results = store.search(state["query"], top_k=3)
+    alpha = 0.0 if settings.use_mock_embeddings else 0.5
+    results = store.search(state["query"], top_k=3, alpha=alpha)
 
     return {**state, "context": results, "steps": ["retrieved_context"]}
